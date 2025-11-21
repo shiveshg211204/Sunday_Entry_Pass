@@ -83,8 +83,14 @@
         <div id="admin-login-section" class="hidden">
             <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">व्यवस्थापक लॉगिन</h2>
             <form id="admin-login-form" class="space-y-5">
-                <div><label class="block text-sm font-medium text-gray-700 mb-1">ईमेल</label><input type="email" id="admin-email" required value="shivesh211204@gmail.com" class="w-full p-3 border border-gray-300 rounded-lg"></div>
-                <div><label class="block text-sm font-medium text-gray-700 mb-1">पासवर्ड</label><input type="password" id="admin-password" required value="GudiyA@123" class="w-full p-3 border border-gray-300 rounded-lg"></div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">ईमेल</label>
+                    <input type="email" id="admin-email" required placeholder="admin@example.com" class="w-full p-3 border border-gray-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">पासवर्ड</label>
+                    <input type="password" id="admin-password" required placeholder="********" class="w-full p-3 border border-gray-300 rounded-lg">
+                </div>
                 <button type="submit" id="admin-login-button" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 shadow-md">लॉगिन करें</button>
             </form>
             <p id="admin-error-message" class="text-red-500 text-center mt-3 hidden"></p>
@@ -235,9 +241,8 @@
             adminDashboardSection.classList.add('hidden');
             adminLoginSection.classList.remove('hidden');
             
+            // FIXED: Just reset form, do NOT pre-fill values
             adminLoginForm.reset();
-            document.getElementById('admin-email').value = ADMIN_EMAIL;
-            document.getElementById('admin-password').value = "GudiyA@123";
             adminErrorElement.classList.add('hidden');
         }
         window.renderAdminLogin = renderAdminLogin;
@@ -425,20 +430,16 @@
                     throw new Error("Unauthorized admin.");
                 }
             } catch (error) {
-                // Handle admin creation for first run if user not found
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-                     // NOTE: In production, remove this 'create on fail' logic or secure it. 
-                     // Keeping it here based on your previous code structure for ease of setup.
                     try {
-                        // Only try to create if it was strictly "user-not-found". 
-                        // If password wrong, we shouldn't create. 
-                        // But for this snippet's simplicity matching your request:
-                         if(error.code === 'auth/user-not-found') {
-                            const newUser = await createUserWithEmailAndPassword(auth, email, password);
-                            if (newUser.user.email === ADMIN_EMAIL) renderAdminDashboard();
-                         } else {
-                            throw error;
-                         }
+                        // Attempt create only if strictly user-not-found (First run setup)
+                        // NOTE: In a real production app, remove this 'create' block after your first login!
+                        if(error.code === 'auth/user-not-found') {
+                             const newUser = await createUserWithEmailAndPassword(auth, email, password);
+                             if (newUser.user.email === ADMIN_EMAIL) renderAdminDashboard();
+                        } else {
+                             throw error;
+                        }
                     } catch (createErr) {
                         adminErrorElement.textContent = "Login failed: " + error.message;
                         adminErrorElement.classList.remove('hidden');
