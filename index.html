@@ -4,30 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>इवेंट एंट्री पंजीकरण</title>
-    <!-- Fixed: Tailwind CDN Link -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Fixed: Font Imports */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@100..900&display=swap');
         body {
             font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;
             background-color: #f7f7f7;
         }
-        #debug-console {
-            display: none;
-            background: #000;
-            color: #0f0;
-            padding: 10px;
-            font-family: monospace;
-            font-size: 12px;
-            margin-top: 20px;
-            border-radius: 5px;
-            max-height: 200px;
-            overflow-y: auto;
-            width: 100%;
-            max-width: 500px;
-        }
+        /* Custom styles for the Admin Dashboard table */
         #attendee-list th, #attendee-list td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; font-size: 0.85rem; }
         #attendee-list th { background-color: #f0f0f0; font-weight: 600; }
         .truncate-id { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -41,13 +26,11 @@
 
         <!-- Loading State -->
         <div id="loading-state" class="text-center py-10">
-            <!-- Fixed: SVG Namespace -->
             <svg class="animate-spin h-8 w-8 text-indigo-500 mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
             <p class="text-gray-600">एप्लिकेशन लोड हो रहा है...</p>
-            <p id="loading-status" class="text-xs text-gray-400 mt-2">Initialization started...</p>
             <p id="loading-error-msg" class="text-red-500 text-sm mt-2 hidden"></p>
         </div>
 
@@ -131,44 +114,11 @@
         </div>
     </div>
 
-    <!-- DEBUG CONSOLE -->
-    <div id="debug-console">Debug Log Initialized...</div>
-
-    <!-- Fixed: Corrected Library Link -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script type="module">
-        // Debugging Setup
-        const debugConsole = document.getElementById('debug-console');
-        const loadingStatus = document.getElementById('loading-status');
-        function log(msg) {
-            console.log(msg);
-            const div = document.createElement('div');
-            div.textContent = `> ${msg}`;
-            debugConsole.appendChild(div);
-            loadingStatus.textContent = msg;
-        }
-        function logError(msg) {
-            console.error(msg);
-            const div = document.createElement('div');
-            div.style.color = '#f55';
-            div.textContent = `ERROR: ${msg}`;
-            debugConsole.appendChild(div);
-            const loadingErrorMsg = document.getElementById('loading-error-msg');
-            loadingErrorMsg.textContent = `Error: ${msg}`;
-            loadingErrorMsg.classList.remove('hidden');
-            debugConsole.style.display = 'block'; // Show console on error
-        }
-        window.onerror = function(message, source, lineno, colno, error) {
-            logError(`${message} at line ${lineno}`);
-        };
+        // Utility
+        window.formatTimestamp = function(isoString) { try { return new Date(isoString).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }); } catch { return "Date N/A"; } };
 
-        // === UTILITY FUNCTION DEFINED AT TOP TO AVOID REFERENCE ERROR ===
-        window.formatTimestamp = function(isoString) {
-            try { return new Date(isoString).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }); }
-            catch { return "Date N/A"; }
-        };
-
-        // Fixed: Corrected Import Paths (Removed extra Markdown syntax)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -190,10 +140,9 @@
 
         let app, db, auth, userId = null;
         let allAttendeesData = [];
+        let unsubscribeEntryCard = null;
 
-        // DOM Elements
         const loadingState = document.getElementById('loading-state');
-        const loadingErrorMsg = document.getElementById('loading-error-msg');
         const formSection = document.getElementById('form-section');
         const cardSection = document.getElementById('card-section');
         const adminDashboardSection = document.getElementById('admin-dashboard-section');
@@ -266,26 +215,22 @@
         }
 
         function listenForEntryCard() {
-            if (!db || !userId) {
-                logError("Cannot listen for card: DB or UserId missing");
-                return;
-            }
-            log("Listening for entry card...");
+            if (!db || !userId) return;
+            if (unsubscribeEntryCard) unsubscribeEntryCard();
+
             const cardPath = `artifacts/${appId}/users/${userId}/registrations/entryCard`;
-            onSnapshot(doc(db, cardPath), (docSnapshot) => {
+            unsubscribeEntryCard = onSnapshot(doc(db, cardPath), (docSnapshot) => {
                 if (docSnapshot.exists()) {
-                    log("Found existing card.");
                     renderEntryCard(docSnapshot.data());
                 } else {
-                    log("No card found. Showing registration form.");
                     renderForm();
                 }
             }, (error) => {
-                logError("Firestore Read Error: " + error.message);
                 if (error.code === 'permission-denied') {
-                    showError("Permission denied. Please check Firestore Rules.");
+                    document.getElementById('loading-error-msg').textContent = "Error: Permission Denied. Fix Rules.";
+                    document.getElementById('loading-error-msg').classList.remove('hidden');
                 }
-                renderForm(); // Fallback to form
+                renderForm(); 
             });
         }
         window.listenForEntryCard = listenForEntryCard;
@@ -317,10 +262,8 @@
                 const publicAttendeeCollection = collection(db, `artifacts/${appId}/public/data/attendees`);
                 await addDoc(publicAttendeeCollection, data);
 
-                log("Data saved successfully.");
                 renderEntryCard(data);
             } catch (error) {
-                logError("Save Error: " + error.message);
                 showError(`Error: ${error.message}`);
             } finally {
                 submitButton.disabled = false;
@@ -339,6 +282,7 @@
             loginButton.textContent = 'लॉगिन हो रहा है...';
 
             try {
+                if (unsubscribeEntryCard) unsubscribeEntryCard();
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
                 if (userCredential.user.email === ADMIN_EMAIL) {
                     renderAdminDashboard();
@@ -348,7 +292,6 @@
                 }
             } catch (error) {
                 if (error.code === 'auth/user-not-found') {
-                    log("Admin not found. Creating...");
                     try {
                         const newUser = await createUserWithEmailAndPassword(auth, email, password);
                         if (newUser.user.email === ADMIN_EMAIL) renderAdminDashboard();
@@ -377,7 +320,6 @@
                 snapshot.forEach(d => allAttendeesData.push(d.data()));
                 renderAttendeeList(allAttendeesData);
             } catch (e) {
-                logError("Fetch Error: " + e.message);
                 tbody.innerHTML = `<tr><td colspan="5" class="text-red-500">Error: ${e.message}</td></tr>`;
             }
         }
@@ -399,34 +341,30 @@
 
         async function initializeAppAndAuth() {
             try {
-                log("Initializing Firebase...");
                 app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
                 
                 onAuthStateChanged(auth, async (user) => {
                     if (!user) {
-                        log("No user. Attempting Anonymous Sign-in...");
-                        try {
-                            await signInAnonymously(auth);
-                        } catch (e) {
-                            logError("Anonymous Sign-in Failed: " + e.message);
-                            // If this fails, ensure 'Anonymous' is enabled in Firebase Console -> Authentication
+                        try { await signInAnonymously(auth); } catch (e) { 
+                            document.getElementById('loading-error-msg').textContent = "Auth Error. Enable Anonymous Auth.";
+                            document.getElementById('loading-error-msg').classList.remove('hidden');
                         }
                     } else {
                         userId = user.uid;
-                        log("User Authenticated: " + userId);
                         if (user.email === ADMIN_EMAIL) renderAdminDashboard();
                         else listenForEntryCard();
                     }
                 });
             } catch (error) {
-                logError("Init Error: " + error.message);
+                document.getElementById('loading-error-msg').textContent = "Init Error.";
+                document.getElementById('loading-error-msg').classList.remove('hidden');
             }
         }
 
         async function handleSignOutAndGuestMode() {
-            try { await signOut(auth); log("Signed out."); } catch(e) { logError(e.message); }
+            try { await signOut(auth); } catch(e) {}
         }
         window.handleSignOutAndGuestMode = handleSignOutAndGuestMode;
 
@@ -434,23 +372,22 @@
             try { 
                 if(auth.currentUser) await signOut(auth); 
                 await signInAnonymously(auth);
-            } catch(e) { logError(e.message); }
+            } catch(e) {}
         }
         window.handleNewRegistration = handleNewRegistration;
         
-        // Gemini Functions (simplified for brevity, add placeholders if needed)
-        async function fetchWelcomeMessage() { /* ... same as before ... */ }
+        async function fetchWelcomeMessage() { /* ... */ }
         window.fetchWelcomeMessage = fetchWelcomeMessage;
-        async function fetchAdminSummary() { /* ... same as before ... */ }
+        async function fetchAdminSummary() { /* ... */ }
         window.fetchAdminSummary = fetchAdminSummary;
 
         form.addEventListener('submit', handleFormSubmit);
         initializeAppAndAuth();
         
-        // Safety timeout
         setTimeout(() => {
-            if(loadingState.classList.contains('hidden') === false && !loadingStatus.classList.contains('text-red-500')) {
-                logError("Timeout: Firebase took too long. Check internet or config.");
+            if(loadingState.classList.contains('hidden') === false) {
+                document.getElementById('loading-error-msg').textContent = "Timeout. Check Internet/Rules.";
+                document.getElementById('loading-error-msg').classList.remove('hidden');
             }
         }, 8000);
 
