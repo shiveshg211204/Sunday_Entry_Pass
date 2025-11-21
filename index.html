@@ -20,12 +20,9 @@
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
 
-    <!-- Main Container -->
     <div id="app-container" class="w-full max-w-lg bg-white shadow-xl rounded-xl p-6 md:p-10">
-        <!-- UPDATED TITLE -->
         <h1 class="text-3xl font-bold text-center text-indigo-700 mb-6">इस्कॉन उज्जैन मंदिर हॉल</h1>
 
-        <!-- Loading State -->
         <div id="loading-state" class="text-center py-10">
             <svg class="animate-spin h-8 w-8 text-indigo-500 mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -35,33 +32,54 @@
             <p id="loading-error-msg" class="text-red-500 text-sm mt-2 hidden"></p>
         </div>
 
-        <!-- Admin Dashboard -->
+        <div id="closed-section" class="hidden text-center py-8">
+            <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
+                <strong class="font-bold">पंजीकरण बंद है!</strong>
+                <span class="block sm:inline">वर्तमान में नई प्रविष्टियाँ स्वीकार नहीं की जा रही हैं।</span>
+            </div>
+            <div class="text-center mt-6 pt-4">
+                <button onclick="renderAdminLogin()" class="text-sm text-gray-500 hover:text-indigo-600 flex items-center justify-center w-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    एडमिन लॉगिन (Admin Login)
+                </button>
+            </div>
+        </div>
+
         <div id="admin-dashboard-section" class="hidden">
-            <div class="flex justify-between items-center mb-6">
+            <div class="flex justify-between items-center mb-4">
                 <h2 class="text-2xl font-semibold text-gray-800">व्यवस्थापक डैशबोर्ड</h2>
                 <button onclick="handleSignOutAndGuestMode()" class="text-sm text-red-600 hover:text-red-800 font-medium">लॉगआउट (Exit)</button>
             </div>
-            <div class="space-y-4 mb-6 p-4 bg-indigo-50 rounded-lg">
-                <p class="text-sm text-indigo-700 font-medium">नमस्ते, व्यवस्थापक! (<span class="truncate-id font-mono text-xs" id="admin-uid-display">...</span>)</p>
-                <button onclick="fetchAdminSummary()" id="summary-button" class="w-full bg-pink-600 text-white py-2 rounded-lg font-semibold hover:bg-pink-700 disabled:bg-pink-400 flex items-center justify-center">
-                    <span class="mr-2">✨ सारांश प्राप्त करें</span>
-                    <svg id="summary-spinner" class="animate-spin h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                </button>
-                <div id="admin-insights" class="bg-white p-3 rounded-lg shadow-inner border border-gray-200">
-                    <p class="text-xs font-medium text-gray-600 mb-1">व्यवस्थापक अंतर्दृष्टि:</p>
-                    <p id="summary-output" class="text-sm text-gray-700 italic">सारांश के लिए ऊपर क्लिक करें।</p>
+            
+            <div class="bg-indigo-50 p-4 rounded-lg mb-4 border border-indigo-100">
+                <p class="text-sm text-indigo-700 font-medium mb-3">Admin Actions</p>
+                
+                <div class="flex items-center justify-between mb-3 bg-white p-2 rounded border">
+                    <span class="text-sm font-medium text-gray-700">पंजीकरण चालू/बंद करें:</span>
+                    <label class="inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="reg-toggle" class="sr-only peer" onchange="toggleRegistrationStatus()">
+                        <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                        <span id="reg-status-text" class="ms-3 text-sm font-medium text-gray-900">Wait...</span>
+                    </label>
                 </div>
+
+                <button onclick="exportToCSV()" class="w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 flex items-center justify-center mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Excel/CSV डाउनलोड करें
+                </button>
             </div>
-            <div class="max-h-96 overflow-y-auto bg-white rounded-lg shadow">
+
+            <div class="max-h-80 overflow-y-auto bg-white rounded-lg shadow border">
                 <table class="w-full" id="attendee-list">
-                    <thead><tr><th>नाम</th><th>संपर्क</th><th>भक्त से जुड़े</th><th>पता</th><th>तिथि</th></tr></thead>
+                    <thead><tr><th>नाम</th><th>संपर्क</th><th>भक्त</th><th>तिथि</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
             <button onclick="handleSignOutAndGuestMode()" class="mt-4 w-full bg-gray-600 text-white py-2 rounded-lg font-semibold hover:bg-gray-700">वापस गेस्ट फॉर्म पर जाएं</button>
         </div>
         
-        <!-- Admin Login -->
         <div id="admin-login-section" class="hidden">
             <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">व्यवस्थापक लॉगिन</h2>
             <form id="admin-login-form" class="space-y-5">
@@ -73,7 +91,6 @@
             <div class="text-center mt-4"><button onclick="renderForm()" class="text-sm text-gray-500 hover:text-indigo-600 underline">← वापस गेस्ट फॉर्म पर जाएं</button></div>
         </div>
 
-        <!-- Guest Form -->
         <div id="form-section" class="hidden">
             <h2 class="text-xl font-semibold text-gray-800 mb-4">अपनी प्रविष्टि पंजीकृत करें</h2>
             <form id="registration-form" class="space-y-5">
@@ -82,35 +99,40 @@
                 <div><label class="block text-sm font-medium text-gray-700 mb-1">पता (Address)</label><textarea id="full_address" name="full_address" rows="2" required placeholder="अपना पूरा पता यहाँ लिखें" class="w-full p-3 border border-gray-300 rounded-lg"></textarea></div>
                 <div><label class="block text-sm font-medium text-gray-700 mb-1">आप मंदिर में किस भक्त से जुड़े हैं?</label><textarea id="address" name="address" rows="2" required placeholder="भक्त का नाम लिखें" class="w-full p-3 border border-gray-300 rounded-lg"></textarea></div>
                 
-                <!-- Gemini Message Feature REMOVED here -->
-
                 <button type="submit" id="submit-button" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 shadow-md">प्रवेश कार्ड बनाएँ</button>
             </form>
             <p id="error-message" class="text-red-500 text-center mt-3 hidden"></p>
             <div class="text-center mt-6 pt-4 border-t border-gray-200"><button onclick="renderAdminLogin()" class="text-sm text-gray-500 hover:text-indigo-600 flex items-center justify-center w-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>एडमिन लॉगिन (Admin Login)</button></div>
         </div>
 
-        <!-- Entry Card Section -->
         <div id="card-section" class="hidden">
             <h2 class="text-xl font-semibold text-gray-800 mb-6 text-center">आपका इवेंट प्रवेश कार्ड</h2>
-            <div id="entry-card" class="bg-gradient-to-br from-indigo-600 to-purple-700 text-white p-6 rounded-xl shadow-2xl space-y-4">
-                <div class="border-b border-white/30 pb-3 mb-4">
-                    <!-- UPDATED CARD TITLE -->
-                    <h3 class="text-2xl font-bold">इस्कॉन उज्जैन मंदिर हॉल</h3>
-                    <p class="text-lg font-light opacity-90 mt-1">प्रवेश पास</p>
-                    <p class="text-3xl font-extrabold mt-1" id="card-timestamp"></p>
-                </div>
-                <div class="space-y-2"><p class="text-sm font-light">उपस्थित व्यक्ति का नाम:</p><p id="card-name" class="text-xl font-extrabold"></p></div>
-                
-                <!-- Message Container REMOVED from card -->
+            <div class="flex justify-center">
+                <div id="entry-card" class="w-full bg-gradient-to-br from-indigo-600 to-purple-700 text-white p-6 rounded-xl shadow-2xl space-y-4 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full blur-xl"></div>
 
-                <div class="grid grid-cols-2 gap-4 pt-2 border-t border-white/30"><div><p class="text-xs font-light opacity-80">संपर्क नंबर</p><p id="card-contact" class="font-medium text-base"></p></div><div><p class="text-xs font-light opacity-80">भक्त से जुड़े:</p><p id="card-address" class="font-medium text-sm"></p></div></div>
-                <div class="pt-2"><p class="text-xs font-light opacity-80">पता:</p><p id="card-full-address" class="font-medium text-sm"></p></div>
-                <div class="pt-2 border-t border-white/20"><p class="text-xs font-light opacity-80">उपयोगकर्ता आईडी</p><p id="card-user-id" class="font-light text-xs opacity-70 truncate"></p></div>
+                    <div class="border-b border-white/30 pb-3 mb-4">
+                        <h3 class="text-2xl font-bold">इस्कॉन उज्जैन मंदिर हॉल</h3>
+                        <p class="text-lg font-light opacity-90 mt-1">प्रवेश पास</p>
+                        <p class="text-3xl font-extrabold mt-1" id="card-timestamp"></p>
+                    </div>
+                    <div class="space-y-2"><p class="text-sm font-light">उपस्थित व्यक्ति का नाम:</p><p id="card-name" class="text-xl font-extrabold"></p></div>
+                    
+                    <div class="grid grid-cols-2 gap-4 pt-2 border-t border-white/30">
+                        <div><p class="text-xs font-light opacity-80">संपर्क नंबर</p><p id="card-contact" class="font-medium text-base"></p></div>
+                        <div><p class="text-xs font-light opacity-80">भक्त से जुड़े:</p><p id="card-address" class="font-medium text-sm"></p></div>
+                    </div>
+                    <div class="pt-2"><p class="text-xs font-light opacity-80">पता:</p><p id="card-full-address" class="font-medium text-sm"></p></div>
+                    <div class="pt-2 border-t border-white/20"><p class="text-xs font-light opacity-80">उपयोगकर्ता आईडी</p><p id="card-user-id" class="font-light text-xs opacity-70 truncate"></p></div>
+                </div>
             </div>
+            
             <p class="text-center text-sm text-gray-500 mt-6">पंजीकरण पूर्ण।</p>
-            <div class="text-center mt-4 space-x-4">
-                <button onclick="downloadCard()" class="bg-green-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-600 shadow-md">कार्ड डाउनलोड करें</button>
+            <div class="text-center mt-4 space-y-3 md:space-y-0 md:space-x-4 flex flex-col md:flex-row justify-center">
+                <button onclick="downloadCard()" class="bg-green-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-600 shadow-md flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    कार्ड डाउनलोड करें
+                </button>
                 <button onclick="handleNewRegistration()" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium py-2 px-4">किसी अन्य अतिथि को पंजीकृत करें</button>
             </div>
         </div>
@@ -122,8 +144,8 @@
         window.formatTimestamp = function(isoString) { try { return new Date(isoString).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }); } catch { return "Date N/A"; } };
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         const PROJECT_FIREBASE_CONFIG = {
             apiKey: "AIzaSyBOc6EeIc59S6COb80NJfYyl3GdRiI2H6k",
@@ -137,15 +159,16 @@
 
         const appId = PROJECT_FIREBASE_CONFIG.projectId;
         const firebaseConfig = PROJECT_FIREBASE_CONFIG; 
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
         const ADMIN_EMAIL = "shivesh211204@gmail.com"; 
 
         let app, db, auth, userId = null;
         let allAttendeesData = [];
         let unsubscribeEntryCard = null;
+        let isRegistrationOpen = true; // Default open
 
         const loadingState = document.getElementById('loading-state');
         const formSection = document.getElementById('form-section');
+        const closedSection = document.getElementById('closed-section');
         const cardSection = document.getElementById('card-section');
         const adminDashboardSection = document.getElementById('admin-dashboard-section');
         const adminLoginSection = document.getElementById('admin-login-section');
@@ -154,17 +177,27 @@
         const errorMessage = document.getElementById('error-message');
         const adminLoginForm = document.getElementById('admin-login-form');
         const adminErrorElement = document.getElementById('admin-error-message');
-        const summaryButton = document.getElementById('summary-button');
-        const summarySpinner = document.getElementById('summary-spinner');
-        const summaryOutput = document.getElementById('summary-output');
+        const regToggle = document.getElementById('reg-toggle');
+        const regStatusText = document.getElementById('reg-status-text');
+
+        // --- RENDER FUNCTIONS ---
 
         function renderForm() {
             loadingState.classList.add('hidden');
             cardSection.classList.add('hidden');
             adminDashboardSection.classList.add('hidden');
             adminLoginSection.classList.add('hidden');
-            formSection.classList.remove('hidden');
+            
+            // Check if registration is open
+            if (isRegistrationOpen) {
+                formSection.classList.remove('hidden');
+                closedSection.classList.add('hidden');
+            } else {
+                formSection.classList.add('hidden');
+                closedSection.classList.remove('hidden');
+            }
         }
+        window.renderForm = renderForm; // Make global
 
         function renderEntryCard(data) {
             document.getElementById('card-name').textContent = data.name;
@@ -176,6 +209,7 @@
             
             loadingState.classList.add('hidden');
             formSection.classList.add('hidden');
+            closedSection.classList.add('hidden');
             adminDashboardSection.classList.add('hidden');
             adminLoginSection.classList.add('hidden');
             cardSection.classList.remove('hidden');
@@ -184,21 +218,25 @@
         function renderAdminDashboard() {
             loadingState.classList.add('hidden');
             formSection.classList.add('hidden');
+            closedSection.classList.add('hidden');
             cardSection.classList.add('hidden');
             adminLoginSection.classList.add('hidden');
             adminDashboardSection.classList.remove('hidden');
-            document.getElementById('admin-uid-display').textContent = userId;
+            
             fetchAttendees();
+            fetchRegistrationStatus(); // Get current switch status
         }
 
         function renderAdminLogin() {
             loadingState.classList.add('hidden');
             formSection.classList.add('hidden');
+            closedSection.classList.add('hidden');
             cardSection.classList.add('hidden');
             adminDashboardSection.classList.add('hidden');
             adminLoginSection.classList.remove('hidden');
+            
             adminLoginForm.reset();
-            document.getElementById('admin-email').value = "shivesh211204@gmail.com";
+            document.getElementById('admin-email').value = ADMIN_EMAIL;
             document.getElementById('admin-password').value = "GudiyA@123";
             adminErrorElement.classList.add('hidden');
         }
@@ -208,26 +246,124 @@
             errorMessage.textContent = message;
             errorMessage.classList.remove('hidden');
         }
-        function hideError() {
-            errorMessage.classList.add('hidden');
+        function hideError() { errorMessage.classList.add('hidden'); }
+
+        // --- CORE LOGIC ---
+
+        // 1. Download Card Functionality
+        window.downloadCard = async function() {
+            const cardElement = document.getElementById('entry-card');
+            if (!cardElement) return;
+            
+            try {
+                const canvas = await html2canvas(cardElement, {
+                    scale: 2, // Higher quality
+                    backgroundColor: null, // Transparent background if css handles it
+                    useCORS: true
+                });
+                
+                const image = canvas.toDataURL("image/png");
+                const link = document.createElement('a');
+                link.href = image;
+                link.download = `ISKCON_Pass_${document.getElementById('card-name').textContent}.png`;
+                link.click();
+            } catch (err) {
+                alert("Error downloading card: " + err.message);
+            }
+        };
+
+        // 2. CSV Export Functionality
+        window.exportToCSV = function() {
+            if (!allAttendeesData || allAttendeesData.length === 0) {
+                alert("No data to export.");
+                return;
+            }
+
+            // Define CSV Headers
+            const headers = ["Name", "Contact", "Linked Devotee", "Address", "Timestamp", "User ID"];
+            
+            // Map data to CSV rows
+            const rows = allAttendeesData.map(row => {
+                // Escape double quotes within content and wrap fields in quotes to handle commas
+                const safe = (text) => `"${(text || "").toString().replace(/"/g, '""')}"`;
+                return [
+                    safe(row.name),
+                    safe(row.contact),
+                    safe(row.address),
+                    safe(row.full_address),
+                    safe(row.timestamp),
+                    safe(row.userId)
+                ].join(",");
+            });
+
+            // Combine headers and rows
+            const csvContent = [headers.join(","), ...rows].join("\n");
+
+            // Create Blob and Download Link
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `ISKCON_Attendees_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+        // 3. Toggle Registration Status
+        window.toggleRegistrationStatus = async function() {
+            const isChecked = regToggle.checked;
+            regStatusText.textContent = isChecked ? "Registration OPEN" : "Registration CLOSED";
+            regStatusText.className = isChecked ? "ms-3 text-sm font-medium text-green-600" : "ms-3 text-sm font-medium text-red-600";
+
+            const configPath = `artifacts/${appId}/config/settings`;
+            try {
+                await setDoc(doc(db, configPath), { isRegistrationOpen: isChecked }, { merge: true });
+            } catch (e) {
+                alert("Error updating settings: " + e.message);
+                // Revert UI if failed
+                regToggle.checked = !isChecked;
+            }
+        };
+
+        async function fetchRegistrationStatus() {
+            const configPath = `artifacts/${appId}/config/settings`;
+            onSnapshot(doc(db, configPath), (docSnapshot) => {
+                if (docSnapshot.exists()) {
+                    const data = docSnapshot.data();
+                    isRegistrationOpen = data.isRegistrationOpen !== false; // Default to true if missing
+                } else {
+                    isRegistrationOpen = true; // Default if doc doesn't exist
+                }
+                
+                // Update Admin UI
+                if(document.getElementById('admin-dashboard-section').classList.contains('hidden') === false) {
+                     regToggle.checked = isRegistrationOpen;
+                     regStatusText.textContent = isRegistrationOpen ? "Registration OPEN" : "Registration CLOSED";
+                     regStatusText.className = isRegistrationOpen ? "ms-3 text-sm font-medium text-green-600" : "ms-3 text-sm font-medium text-red-600";
+                }
+            });
         }
+
+        // --- EXISTING LOGIC MODIFIED ---
 
         function listenForEntryCard() {
             if (!db || !userId) return;
             if (unsubscribeEntryCard) unsubscribeEntryCard();
 
+            // First check registration status
+            fetchRegistrationStatus(); 
+
             const cardPath = `artifacts/${appId}/users/${userId}/registrations/entryCard`;
             unsubscribeEntryCard = onSnapshot(doc(db, cardPath), (docSnapshot) => {
                 if (docSnapshot.exists()) {
+                    // If user HAS a card, show it regardless of closed status
                     renderEntryCard(docSnapshot.data());
                 } else {
-                    renderForm();
+                    // If user has NO card, check if registration is open
+                    renderForm(); 
                 }
             }, (error) => {
-                if (error.code === 'permission-denied') {
-                    document.getElementById('loading-error-msg').textContent = "Error: Permission Denied. Fix Rules.";
-                    document.getElementById('loading-error-msg').classList.remove('hidden');
-                }
                 renderForm(); 
             });
         }
@@ -236,6 +372,8 @@
         async function handleFormSubmit(e) {
             e.preventDefault();
             if (!userId) { showError("Auth failed."); return; }
+            if (!isRegistrationOpen) { showError("Registration is closed."); return; }
+
             submitButton.disabled = true;
             submitButton.textContent = 'प्रस्तुत हो रहा है...';
             hideError();
@@ -287,12 +425,22 @@
                     throw new Error("Unauthorized admin.");
                 }
             } catch (error) {
-                if (error.code === 'auth/user-not-found') {
+                // Handle admin creation for first run if user not found
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+                     // NOTE: In production, remove this 'create on fail' logic or secure it. 
+                     // Keeping it here based on your previous code structure for ease of setup.
                     try {
-                        const newUser = await createUserWithEmailAndPassword(auth, email, password);
-                        if (newUser.user.email === ADMIN_EMAIL) renderAdminDashboard();
+                        // Only try to create if it was strictly "user-not-found". 
+                        // If password wrong, we shouldn't create. 
+                        // But for this snippet's simplicity matching your request:
+                         if(error.code === 'auth/user-not-found') {
+                            const newUser = await createUserWithEmailAndPassword(auth, email, password);
+                            if (newUser.user.email === ADMIN_EMAIL) renderAdminDashboard();
+                         } else {
+                            throw error;
+                         }
                     } catch (createErr) {
-                        adminErrorElement.textContent = "Error creating admin: " + createErr.message;
+                        adminErrorElement.textContent = "Login failed: " + error.message;
                         adminErrorElement.classList.remove('hidden');
                     }
                 } else {
@@ -329,9 +477,8 @@
                 const row = tbody.insertRow();
                 row.insertCell(0).textContent = d.name;
                 row.insertCell(1).textContent = d.contact;
-                row.insertCell(2).textContent = d.address;
-                row.insertCell(3).textContent = d.full_address || '-';
-                row.insertCell(4).textContent = window.formatTimestamp(d.timestamp).split(',')[0];
+                row.insertCell(2).textContent = d.address; // This is the 'Connected To' field in your form
+                row.insertCell(3).textContent = window.formatTimestamp(d.timestamp).split(',')[0];
             });
         }
 
@@ -372,9 +519,6 @@
         }
         window.handleNewRegistration = handleNewRegistration;
         
-        async function fetchAdminSummary() { /* ... */ }
-        window.fetchAdminSummary = fetchAdminSummary;
-
         form.addEventListener('submit', handleFormSubmit);
         initializeAppAndAuth();
         
