@@ -314,4 +314,120 @@
                 
                 // 2. Save data publicly (for organizer export to Excel/CSV)
                 // Path: /artifacts/{appId}/public/data/attendees/{unique_doc_id}
-                const publicAttendeeCollection = collection(db, `artifacts/${appId}/public/data/attend
+                const publicAttendeeCollection = collection(db, `artifacts/${appId}/public/data/attendees`);
+                // Use addDoc to automatically generate a unique ID for each new entry
+                await addDoc(publicAttendeeCollection, data);
+
+                console.log("Registration saved successfully to private and public collections!");
+                renderEntryCard(data); // Render card immediately
+                
+
+            } catch (error) {
+                console.error("Registration failed:", error);
+                showError(`पंजीकरण विफल रहा: ${error.message}`); // Registration failed
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'प्रवेश कार्ड बनाएँ'; // Generate Entry Card
+            }
+        }
+
+        /**
+         * Downloads the entry card as a PNG image using html2canvas.
+         */
+        function downloadCard() {
+            const cardElement = document.getElementById('entry-card');
+            const cardName = document.getElementById('card-name').textContent || 'अतिथि'; // Guest
+
+            if (typeof html2canvas === 'undefined') {
+                console.error("html2canvas लाइब्रेरी लोड नहीं हुई है।"); // html2canvas library is not loaded.
+                return;
+            }
+
+            html2canvas(cardElement, {
+                scale: 2, // Increase scale for better resolution
+                logging: false,
+                useCORS: true 
+            }).then(canvas => {
+                const image = canvas.toDataURL('image/png');
+
+                const link = document.createElement('a');
+                link.href = image;
+                link.download = `${cardName.replace(/\s+/g, '_')}_EventPass.png`;
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                console.log("एंट्री कार्ड डाउनलोड शुरू हो गया।"); // Entry card download triggered.
+            }).catch(error => {
+                console.error("कार्ड बनाने या डाउनलोड करने में त्रुटि:", error); // Error generating or downloading card
+                // Custom error message for user
+                document.getElementById('download-error')?.remove(); 
+                
+                appContainer.insertAdjacentHTML('afterbegin', `
+                    <div id="download-error" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm text-center">
+                            <p class="text-red-600 font-semibold mb-3">डाउनलोड विफल रहा</p> <!-- Download Failed --><p class="text-sm text-gray-700">कार्ड छवि उत्पन्न नहीं हो सकी। कृपया पुनः प्रयास करें।</p> <!-- Could not generate the card image. Please try again. --><button onclick="document.getElementById('download-error').remove()" class="mt-4 bg-red-500 text-white py-2 px-4 rounded-lg">बंद करें</button> <!-- Close --></div>
+                    </div>
+                `);
+            });
+        }
+        window.downloadCard = downloadCard; // Make it globally accessible to the onclick event
+
+        // --- Utility Functions ---
+
+        /**
+         * Formats ISO 8601 string to a readable date and time.
+         * @param {string} isoString - The ISO 8601 date string.
+         */
+        function formatTimestamp(isoString) {
+            try {
+                return new Date(isoString).toLocaleString('en-US', { /* Changed locale to English (US) */
+                    dateStyle: 'medium',
+                    timeStyle: 'short'
+                });
+            } catch {
+                return "Date N/A"; // Changed fallback to English for consistency
+            }
+        }
+
+
+        // --- Rendering Functions ---
+
+        function renderForm() {
+            loadingState.classList.add('hidden');
+            cardSection.classList.add('hidden');
+            formSection.classList.remove('hidden');
+        }
+
+        function renderEntryCard(data) {
+            document.getElementById('card-name').textContent = data.name;
+            document.getElementById('card-contact').textContent = data.contact;
+            document.getElementById('card-address').textContent = data.address;
+            document.getElementById('card-user-id').textContent = data.userId; 
+            document.getElementById('card-timestamp').textContent = formatTimestamp(data.timestamp);
+            
+            loadingState.classList.add('hidden');
+            formSection.classList.add('hidden');
+            cardSection.classList.remove('hidden');
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorMessage.classList.add('hidden');
+        }
+
+        // --- Event Listeners and Initial Call ---
+        
+        form.addEventListener('submit', handleFormSubmit);
+
+        // Start the application lifecycle
+        initializeAppAndAuth();
+
+    </script>
+</body>
+</html>
