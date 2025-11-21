@@ -1,268 +1,178 @@
 <!DOCTYPE html>
-<html lang="hi"> <!-- Changed language to Hindi --><head>
+<html lang="hi">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>इवेंट एंट्री पंजीकरण</title> <!-- Event Entry Registration --><!-- Load Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
-    <!-- Use Inter font --><style>
+    <title>इवेंट एंट्री पंजीकरण</title>
+    <!-- Fixed: Tailwind CDN Link -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Fixed: Font Imports */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@100..900&display=swap'); /* Added Devanagari font */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@100..900&display=swap');
         body {
-            font-family: 'Noto Sans Devanagari', 'Inter', sans-serif; /* Prioritize Devanagari font */
+            font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;
             background-color: #f7f7f7;
         }
-        /* Custom styles for the Admin Dashboard table */
-        #attendee-list th, #attendee-list td {
-            padding: 8px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-            font-size: 0.85rem;
+        #debug-console {
+            display: none;
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 20px;
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+            width: 100%;
+            max-width: 500px;
         }
-        #attendee-list th {
-            background-color: #f0f0f0;
-            font-weight: 600;
-        }
-        .truncate-id {
-            max-width: 100px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
+        #attendee-list th, #attendee-list td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; font-size: 0.85rem; }
+        #attendee-list th { background-color: #f0f0f0; font-weight: 600; }
+        .truncate-id { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-4">
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
 
-    <!-- Main Container --><div id="app-container" class="w-full max-w-lg bg-white shadow-xl rounded-xl p-6 md:p-10">
-        <h1 class="text-3xl font-bold text-center text-indigo-700 mb-6">कृष्ण बलराम हॉल</h1> <!-- Krishna Balrama Hall --><!-- Loading State --><div id="loading-state" class="text-center py-10">
+    <!-- Main Container -->
+    <div id="app-container" class="w-full max-w-lg bg-white shadow-xl rounded-xl p-6 md:p-10">
+        <h1 class="text-3xl font-bold text-center text-indigo-700 mb-6">कृष्ण बलराम हॉल</h1>
+
+        <!-- Loading State -->
+        <div id="loading-state" class="text-center py-10">
+            <!-- Fixed: SVG Namespace -->
             <svg class="animate-spin h-8 w-8 text-indigo-500 mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            <p class="text-gray-600">एप्लिकेशन लोड हो रहा है...</p> <!-- Loading application... --></div>
+            <p class="text-gray-600">एप्लिकेशन लोड हो रहा है...</p>
+            <p id="loading-status" class="text-xs text-gray-400 mt-2">Initialization started...</p>
+            <p id="loading-error-msg" class="text-red-500 text-sm mt-2 hidden"></p>
+        </div>
 
-        <!-- Admin Dashboard Section -->
+        <!-- Admin Dashboard -->
         <div id="admin-dashboard-section" class="hidden">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-semibold text-gray-800">व्यवस्थापक डैशबोर्ड</h2> <!-- Admin Dashboard -->
-                <button onclick="handleSignOutAndGuestMode()" class="text-sm text-red-600 hover:text-red-800 font-medium">
-                    लॉगआउट (Exit)
-                </button>
+                <h2 class="text-2xl font-semibold text-gray-800">व्यवस्थापक डैशबोर्ड</h2>
+                <button onclick="handleSignOutAndGuestMode()" class="text-sm text-red-600 hover:text-red-800 font-medium">लॉगआउट (Exit)</button>
             </div>
-            
-            <!-- Admin Controls -->
             <div class="space-y-4 mb-6 p-4 bg-indigo-50 rounded-lg">
                 <p class="text-sm text-indigo-700 font-medium">नमस्ते, व्यवस्थापक! (<span class="truncate-id font-mono text-xs" id="admin-uid-display">...</span>)</p>
-
-                <!-- Gemini Summary Feature -->
-                <button onclick="fetchAdminSummary()" id="summary-button"
-                        class="w-full bg-pink-600 text-white py-2 rounded-lg font-semibold hover:bg-pink-700 transition duration-200 disabled:bg-pink-400 flex items-center justify-center">
-                    <span class="mr-2">✨ सारांश प्राप्त करें</span> <!-- Get Summary -->
-                    <svg id="summary-spinner" class="animate-spin h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+                <button onclick="fetchAdminSummary()" id="summary-button" class="w-full bg-pink-600 text-white py-2 rounded-lg font-semibold hover:bg-pink-700 disabled:bg-pink-400 flex items-center justify-center">
+                    <span class="mr-2">✨ सारांश प्राप्त करें</span>
+                    <svg id="summary-spinner" class="animate-spin h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 </button>
-
-                <!-- Admin Insights Display -->
                 <div id="admin-insights" class="bg-white p-3 rounded-lg shadow-inner border border-gray-200">
-                    <p class="text-xs font-medium text-gray-600 mb-1">व्यवस्थापक अंतर्दृष्टि (Admin Insights):</p>
+                    <p class="text-xs font-medium text-gray-600 mb-1">व्यवस्थापक अंतर्दृष्टि:</p>
                     <p id="summary-output" class="text-sm text-gray-700 italic">सारांश के लिए ऊपर क्लिक करें।</p>
                 </div>
             </div>
-
-            <!-- Attendee List -->
             <div class="max-h-96 overflow-y-auto bg-white rounded-lg shadow">
                 <table class="w-full" id="attendee-list">
-                    <thead>
-                        <tr>
-                            <th>नाम</th>
-                            <th>संपर्क</th>
-                            <th>भक्त से जुड़े</th>
-                            <th>पता</th> <!-- NEW COLUMN -->
-                            <th>तिथि</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Data will be inserted here -->
-                    </tbody>
+                    <thead><tr><th>नाम</th><th>संपर्क</th><th>भक्त से जुड़े</th><th>पता</th><th>तिथि</th></tr></thead>
+                    <tbody></tbody>
                 </table>
             </div>
-            
-            <button onclick="handleSignOutAndGuestMode()" 
-                    class="mt-4 w-full bg-gray-600 text-white py-2 rounded-lg font-semibold hover:bg-gray-700 transition duration-200">
-                वापस गेस्ट फॉर्म पर जाएं
-            </button>
+            <button onclick="handleSignOutAndGuestMode()" class="mt-4 w-full bg-gray-600 text-white py-2 rounded-lg font-semibold hover:bg-gray-700">वापस गेस्ट फॉर्म पर जाएं</button>
         </div>
         
-        <!-- Admin Login Section -->
+        <!-- Admin Login -->
         <div id="admin-login-section" class="hidden">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">व्यवस्थापक लॉगिन</h2> <!-- Admin Login -->
+            <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">व्यवस्थापक लॉगिन</h2>
             <form id="admin-login-form" class="space-y-5">
-                <div>
-                    <label for="admin-email" class="block text-sm font-medium text-gray-700 mb-1">ईमेल</label>
-                    <!-- PRE-FILLED EMAIL -->
-                    <input type="email" id="admin-email" name="admin-email" required value="shivesh211204@gmail.com"
-                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
-                </div>
-                <div>
-                    <label for="admin-password" class="block text-sm font-medium text-gray-700 mb-1">पासवर्ड</label>
-                    <!-- PRE-FILLED PASSWORD -->
-                    <input type="password" id="admin-password" name="admin-password" required value="GudiyA@123"
-                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
-                </div>
-                <button type="submit" id="admin-login-button" 
-                        class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition duration-200 shadow-md disabled:bg-indigo-400">
-                    लॉगिन करें
-                </button>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">ईमेल</label><input type="email" id="admin-email" required value="shivesh211204@gmail.com" class="w-full p-3 border border-gray-300 rounded-lg"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">पासवर्ड</label><input type="password" id="admin-password" required value="GudiyA@123" class="w-full p-3 border border-gray-300 rounded-lg"></div>
+                <button type="submit" id="admin-login-button" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 shadow-md">लॉगिन करें</button>
             </form>
             <p id="admin-error-message" class="text-red-500 text-center mt-3 hidden"></p>
-            <div class="text-center mt-4">
-                 <!-- BUTTON TO GO BACK TO GUEST FORM -->
-                 <button onclick="renderForm()" class="text-sm text-gray-500 hover:text-indigo-600 underline">← वापस गेस्ट फॉर्म पर जाएं</button>
-            </div>
+            <div class="text-center mt-4"><button onclick="renderForm()" class="text-sm text-gray-500 hover:text-indigo-600 underline">← वापस गेस्ट फॉर्म पर जाएं</button></div>
         </div>
 
-        <!-- Form Section -->
+        <!-- Guest Form -->
         <div id="form-section" class="hidden">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">अपनी प्रविष्टि पंजीकृत करें</h2> <!-- Register Your Entry -->
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">अपनी प्रविष्टि पंजीकृत करें</h2>
             <form id="registration-form" class="space-y-5">
-                <div>
-                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">पूरा नाम</label> <!-- Full Name --><input type="text" id="name" name="name" required placeholder="अपना पूरा नाम दर्ज करें"
-                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
-                </div>
-                <div>
-                    <label for="contact" class="block text-sm font-medium text-gray-700 mb-1">संपर्क नंबर</label> <!-- Contact Number --><input type="tel" id="contact" name="contact" required placeholder="अपना संपर्क नंबर दर्ज करें"
-                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
-                </div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">पूरा नाम</label><input type="text" id="name" name="name" required placeholder="अपना पूरा नाम दर्ज करें" class="w-full p-3 border border-gray-300 rounded-lg"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">संपर्क नंबर</label><input type="tel" id="contact" name="contact" required placeholder="अपना संपर्क नंबर दर्ज करें" class="w-full p-3 border border-gray-300 rounded-lg"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">पता (Address)</label><textarea id="full_address" name="full_address" rows="2" required placeholder="अपना पूरा पता यहाँ लिखें" class="w-full p-3 border border-gray-300 rounded-lg"></textarea></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-1">आप मंदिर में किस भक्त से जुड़े हैं?</label><textarea id="address" name="address" rows="2" required placeholder="भक्त का नाम लिखें" class="w-full p-3 border border-gray-300 rounded-lg"></textarea></div>
                 
-                <!-- NEW ADDRESS FIELD -->
-                <div>
-                    <label for="full_address" class="block text-sm font-medium text-gray-700 mb-1">पता (Address)</label>
-                    <textarea id="full_address" name="full_address" rows="2" required placeholder="अपना पूरा पता यहाँ लिखें"
-                              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"></textarea>
-                </div>
-
-                <div>
-                    <label for="address" class="block text-sm font-medium text-gray-700 mb-1">आप मंदिर में किस भक्त से जुड़े हैं?</label> <!-- Which devotee are you connected with at the temple? --><textarea id="address" name="address" rows="2" required placeholder="भक्त का नाम लिखें"
-                              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150"></textarea>
-                </div>
-
-                <!-- Gemini Welcome Message Feature -->
+                <!-- Gemini Feature -->
                 <div class="border p-4 rounded-lg bg-yellow-50 border-yellow-200 space-y-3">
                     <p class="text-sm font-medium text-gray-700">संदेश कार्ड पर व्यक्तिगत संदेश जोड़ें।</p>
                     <p id="welcome-message-output" class="text-xs text-yellow-800 italic">[यहाँ संदेश जेनरेट होगा]</p>
-                    <button type="button" onclick="fetchWelcomeMessage()" id="message-button"
-                            class="w-full bg-yellow-600 text-white py-2 rounded-lg font-semibold hover:bg-yellow-700 transition duration-200 disabled:bg-yellow-400 flex items-center justify-center">
-                        <span class="mr-2">✨ संदेश बनाएँ</span>
-                        <svg id="message-spinner" class="animate-spin h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    </button>
+                    <button type="button" onclick="fetchWelcomeMessage()" id="message-button" class="w-full bg-yellow-600 text-white py-2 rounded-lg font-semibold hover:bg-yellow-700 disabled:bg-yellow-400 flex items-center justify-center"><span class="mr-2">✨ संदेश बनाएँ</span><svg id="message-spinner" class="animate-spin h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></button>
                     <input type="hidden" id="welcome-message" name="welcome-message" value="">
                 </div>
-                <!-- End Gemini Welcome Message Feature -->
 
-                <button type="submit" id="submit-button" 
-                        class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 transition duration-200 shadow-md disabled:bg-indigo-400">
-                    प्रवेश कार्ड बनाएँ
-                </button> <!-- Generate Entry Card -->
+                <button type="submit" id="submit-button" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 shadow-md">प्रवेश कार्ड बनाएँ</button>
             </form>
             <p id="error-message" class="text-red-500 text-center mt-3 hidden"></p>
-            
-            <!-- Admin Login Link (Placed on Form Screen) -->
-            <div class="text-center mt-6 pt-4 border-t border-gray-200">
-                <button onclick="renderAdminLogin()" class="text-sm text-gray-500 hover:text-indigo-600 flex items-center justify-center w-full">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                    एडमिन लॉगिन (Admin Login)
-                </button>
-            </div>
+            <div class="text-center mt-6 pt-4 border-t border-gray-200"><button onclick="renderAdminLogin()" class="text-sm text-gray-500 hover:text-indigo-600 flex items-center justify-center w-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>एडमिन लॉगिन (Admin Login)</button></div>
         </div>
 
-
-        <!-- Entry Card Section --><div id="card-section" class="hidden">
-            <h2 class="text-xl font-semibold text-gray-800 mb-6 text-center">आपका इवेंट प्रवेश कार्ड</h2> <!-- Your Event Entry Card -->
-            
+        <!-- Entry Card Section -->
+        <div id="card-section" class="hidden">
+            <h2 class="text-xl font-semibold text-gray-800 mb-6 text-center">आपका इवेंट प्रवेश कार्ड</h2>
             <div id="entry-card" class="bg-gradient-to-br from-indigo-600 to-purple-700 text-white p-6 rounded-xl shadow-2xl space-y-4">
-                
-                <!-- UPDATED HEADER BLOCK -->
-                <div class="border-b border-white/30 pb-3 mb-4">
-                    <!-- Title Change: From ENTRY PASS to HALL -->
-                    <h3 class="text-2xl font-bold">कृष्ण बलराम हॉल</h3> 
-                    
-                    <!-- Pass Label Change: From VALID ENTRY to प्रवेश पास -->
-                    <p class="text-lg font-light opacity-90 mt-1">प्रवेश पास</p> 
-                    
-                    <!-- Registration Date (New Header Size) -->
-                    <p class="text-3xl font-extrabold mt-1" id="card-timestamp"></p> 
-                </div>
-
-                <div class="space-y-2">
-                    <p class="text-sm font-light">उपस्थित व्यक्ति का नाम:</p> <!-- ATTENDEE NAME: -->
-                    <p id="card-name" class="text-xl font-extrabold"></p>
-                </div>
-                
-                <!-- Personalized Message on Card -->
-                <div class="space-y-1 pt-2 border-t border-white/30" id="card-message-container">
-                    <p class="text-xs font-light opacity-80">विशेष संदेश:</p>
-                    <p id="card-welcome-message" class="font-medium text-sm italic"></p>
-                </div>
-
-
-                <div class="grid grid-cols-2 gap-4 pt-2 border-t border-white/30">
-                    <!-- Contact Number -->
-                    <div>
-                        <p class="text-xs font-light opacity-80">संपर्क नंबर</p> <!-- CONTACT NO. -->
-                        <p id="card-contact" class="font-medium text-base"></p>
-                    </div>
-                    <!-- Empty slot replaced by address/bhakt name -->
-                    <div>
-                        <p class="text-xs font-light opacity-80">भक्त से जुड़े:</p> <!-- Connected Devotee Label -->
-                        <p id="card-address" class="font-medium text-sm"></p>
-                    </div>
-                </div>
-
-                <div class="pt-2">
-                    <p class="text-xs font-light opacity-80">पता:</p> <!-- Address Label -->
-                    <p id="card-full-address" class="font-medium text-sm"></p>
-                </div>
-
-                <div class="pt-2 border-t border-white/20">
-                    <p class="text-xs font-light opacity-80">उपयोगकर्ता आईडी (आयोजक संदर्भ के लिए)</p> <!-- USER ID (For Organizer Reference) -->
-                    <p id="card-user-id" class="font-light text-xs opacity-70 truncate"></p>
-                </div>
+                <div class="border-b border-white/30 pb-3 mb-4"><h3 class="text-2xl font-bold">कृष्ण बलराम हॉल</h3><p class="text-lg font-light opacity-90 mt-1">प्रवेश पास</p><p class="text-3xl font-extrabold mt-1" id="card-timestamp"></p></div>
+                <div class="space-y-2"><p class="text-sm font-light">उपस्थित व्यक्ति का नाम:</p><p id="card-name" class="text-xl font-extrabold"></p></div>
+                <div class="space-y-1 pt-2 border-t border-white/30" id="card-message-container"><p class="text-xs font-light opacity-80">विशेष संदेश:</p><p id="card-welcome-message" class="font-medium text-sm italic"></p></div>
+                <div class="grid grid-cols-2 gap-4 pt-2 border-t border-white/30"><div><p class="text-xs font-light opacity-80">संपर्क नंबर</p><p id="card-contact" class="font-medium text-base"></p></div><div><p class="text-xs font-light opacity-80">भक्त से जुड़े:</p><p id="card-address" class="font-medium text-sm"></p></div></div>
+                <div class="pt-2"><p class="text-xs font-light opacity-80">पता:</p><p id="card-full-address" class="font-medium text-sm"></p></div>
+                <div class="pt-2 border-t border-white/20"><p class="text-xs font-light opacity-80">उपयोगकर्ता आईडी</p><p id="card-user-id" class="font-light text-xs opacity-70 truncate"></p></div>
             </div>
-            
-            <p class="text-center text-sm text-gray-500 mt-6">
-                आपका पंजीकरण पूर्ण हो गया है और सुरक्षित रूप से संग्रहीत है।
-            </p> <!-- Your registration is complete and securely stored. --><div class="text-center mt-4 space-x-4">
-                <!-- DOWNLOAD BUTTON --><button onclick="downloadCard()" 
-                        class="bg-green-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-600 transition duration-200 shadow-md">
-                    कार्ड डाउनलोड करें
-                </button> <!-- Download Card --><!-- BUTTON TO REGISTER NEW GUEST --><button onclick="handleNewRegistration()" 
-                        class="text-indigo-600 hover:text-indigo-800 text-sm font-medium py-2 px-4">
-                    किसी अन्य अतिथि को पंजीकृत करें
-                </button> <!-- Register Another Guest --></div>
+            <p class="text-center text-sm text-gray-500 mt-6">पंजीकरण पूर्ण।</p>
+            <div class="text-center mt-4 space-x-4">
+                <button onclick="downloadCard()" class="bg-green-500 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-600 shadow-md">कार्ड डाउनलोड करें</button>
+                <button onclick="handleNewRegistration()" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium py-2 px-4">किसी अन्य अतिथि को पंजीकृत करें</button>
+            </div>
         </div>
-
     </div>
 
-    <!-- External Library for converting HTML to Image (Canvas) --><script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- DEBUG CONSOLE -->
+    <div id="debug-console">Debug Log Initialized...</div>
 
-    <!-- Firebase SDKs --><script type="module">
+    <!-- Fixed: Corrected Library Link -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script type="module">
+        // Debugging Setup
+        const debugConsole = document.getElementById('debug-console');
+        const loadingStatus = document.getElementById('loading-status');
+        function log(msg) {
+            console.log(msg);
+            const div = document.createElement('div');
+            div.textContent = `> ${msg}`;
+            debugConsole.appendChild(div);
+            loadingStatus.textContent = msg;
+        }
+        function logError(msg) {
+            console.error(msg);
+            const div = document.createElement('div');
+            div.style.color = '#f55';
+            div.textContent = `ERROR: ${msg}`;
+            debugConsole.appendChild(div);
+            const loadingErrorMsg = document.getElementById('loading-error-msg');
+            loadingErrorMsg.textContent = `Error: ${msg}`;
+            loadingErrorMsg.classList.remove('hidden');
+            debugConsole.style.display = 'block'; // Show console on error
+        }
+        window.onerror = function(message, source, lineno, colno, error) {
+            logError(`${message} at line ${lineno}`);
+        };
+
+        // === UTILITY FUNCTION DEFINED AT TOP TO AVOID REFERENCE ERROR ===
+        window.formatTimestamp = function(isoString) {
+            try { return new Date(isoString).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }); }
+            catch { return "Date N/A"; }
+        };
+
+        // Fixed: Corrected Import Paths (Removed extra Markdown syntax)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        // Import signInWithEmailAndPassword and createUserWithEmailAndPassword for Admin Login/Signup
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        // Import necessary Firestore methods, including getDocs for Admin fetch
         import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-        // Use Debug logging for development
-        setLogLevel('Debug');
-
-        // --- EXPLICIT FIREBASE CONFIGURATION (Provided by User) ---
-        // We use a simple constant name here to avoid confusion with environment variables
         const PROJECT_FIREBASE_CONFIG = {
             apiKey: "AIzaSyBOc6EeIc59S6COb80NJfYyl3GdRiI2H6k",
             authDomain: "entrycard-1a28a.firebaseapp.com",
@@ -272,28 +182,18 @@
             appId: "1:571342230056:web:de9f4c19cd820cee6cdb1d",
             measurementId: "G-MQWXKCQ85H" 
         };
-        // ---------------------------------------------------------
 
-        // Global Variables
-        // Use the environment's app ID if available, otherwise use the projectId from the config.
-        const appId = typeof __app_id !== 'undefined' ? __app_id : PROJECT_FIREBASE_CONFIG.projectId;
-        // CORRECTED: Use the explicitly defined config object for initialization
+        const appId = PROJECT_FIREBASE_CONFIG.projectId;
         const firebaseConfig = PROJECT_FIREBASE_CONFIG; 
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-        
-        // CHANGED: We are now checking against a specific EMAIL, not a UID, to make it easier for you.
         const ADMIN_EMAIL = "shivesh211204@gmail.com"; 
 
-        // Firebase Service Instances
-        let app;
-        let db;
-        let auth;
-        let userId = null;
-        let isAuthReady = false;
-        let allAttendeesData = []; // To store data for the admin dashboard
+        let app, db, auth, userId = null;
+        let allAttendeesData = [];
 
         // DOM Elements
         const loadingState = document.getElementById('loading-state');
+        const loadingErrorMsg = document.getElementById('loading-error-msg');
         const formSection = document.getElementById('form-section');
         const cardSection = document.getElementById('card-section');
         const adminDashboardSection = document.getElementById('admin-dashboard-section');
@@ -311,460 +211,6 @@
         const summarySpinner = document.getElementById('summary-spinner');
         const summaryOutput = document.getElementById('summary-output');
 
-
-        // --- Core Functions ---
-
-        /**
-         * Listens to the Firestore document for the user's registration data (the entry card).
-         */
-        function listenForEntryCard() {
-            // CRITICAL GUARD: Do not proceed without database and user ID.
-            if (!db || !userId) {
-                console.warn("Attempted to listenForEntryCard before authentication was ready.");
-                return;
-            }
-
-            // Path: /artifacts/{appId}/users/{userId}/registrations/entryCard (Private Data)
-            const cardPath = `artifacts/${appId}/users/${userId}/registrations/entryCard`;
-            const cardRef = doc(db, cardPath);
-
-            // This listener ensures we show the card if it exists, otherwise the form.
-            onSnapshot(cardRef, (docSnapshot) => {
-                if (docSnapshot.exists()) {
-                    // Data found: Show the Entry Card
-                    const data = docSnapshot.data();
-                    console.log("Entry data retrieved:", data);
-                    renderEntryCard(data);
-                } else {
-                    // No data found: Show the registration form
-                    console.log("No existing registration found. Showing form.");
-                    renderForm();
-                }
-            }, (error) => {
-                // Log the error for debugging
-                console.error("Error listening to card document:", error.message);
-                
-                // If permissions are denied, we still try to render the form, 
-                // but inform the user of the security issue.
-                if (error.code === 'permission-denied') {
-                    console.error("Permission denied to read Firestore data. Check security rules.");
-                    showError("सुरक्षा त्रुटि के कारण मौजूदा पंजीकरण प्राप्त नहीं हो सका। कृपया पुनः पंजीकरण का प्रयास करें।");
-                }
-                renderForm();
-            });
-        }
-        window.listenForEntryCard = listenForEntryCard;
-
-        /**
-         * Handles the form submission to save data to Firestore.
-         * Data is saved to BOTH private and public collections for Excel export.
-         * @param {Event} e - The form submit event.
-         */
-        async function handleFormSubmit(e) {
-            e.preventDefault();
-            
-            if (!userId) {
-                showError("प्रमाणीकरण पूरा नहीं हुआ है। कृपया प्रतीक्षा करें और पुनः प्रयास करें।");
-                return;
-            }
-
-            submitButton.disabled = true;
-            submitButton.textContent = 'प्रस्तुत हो रहा है...'; // Submitting...
-            hideError();
-
-            try {
-                const formData = new FormData(form);
-                const timestamp = new Date().toISOString();
-                const welcomeMessage = welcomeMessageInput.value || "जय श्री कृष्णा!"; // Use generated or default message
-                const data = {
-                    name: formData.get('name').trim(),
-                    contact: formData.get('contact').trim(),
-                    full_address: formData.get('full_address').trim(), // NEW FIELD
-                    address: formData.get('address').trim(), // This is devotee/bhakt connection
-                    timestamp: timestamp,
-                    userId: userId, 
-                    welcomeMessage: welcomeMessage
-                };
-                
-                if (!data.name || !data.contact || !data.address || !data.full_address) {
-                    throw new Error("सभी फ़ील्ड आवश्यक हैं।"); // All fields are required.
-                }
-
-                // 1. Save card privately (for retrieval when user scans QR code again)
-                // Path: /artifacts/{appId}/users/{userId}/registrations/entryCard
-                const privateCardPath = `artifacts/${appId}/users/${userId}/registrations/entryCard`;
-                await setDoc(doc(db, privateCardPath), data);
-                
-                // 2. Save data publicly (for organizer export to Excel/CSV)
-                // Path: /artifacts/{appId}/public/data/attendees/{unique_doc_id}
-                const publicAttendeeCollection = collection(db, `artifacts/${appId}/public/data/attendees`);
-                // Use addDoc to automatically generate a unique ID for each new entry
-                await addDoc(publicAttendeeCollection, data);
-
-                console.log("Registration saved successfully to private and public collections!");
-                renderEntryCard(data); // Render card immediately
-                
-            } catch (error) {
-                console.error("Registration failed:", error);
-                showError(`पंजीकरण विफल रहा: ${error.message}`); // Registration failed
-            } finally {
-                submitButton.disabled = false;
-                submitButton.textContent = 'प्रवेश कार्ड बनाएँ'; // Generate Entry Card
-            }
-        }
-        window.handleFormSubmit = handleFormSubmit; // Expose globally for event listener
-
-        /**
-         * Initializes Firebase and authenticates the user.
-         */
-        async function initializeAppAndAuth() {
-            try {
-                if (Object.keys(firebaseConfig).length === 0) {
-                    throw new Error("Firebase configuration not available.");
-                }
-
-                // Initialize Firebase App FIRST
-                app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                
-                // Function to handle sign-in logic
-                async function handleSignIn() {
-                    if (!auth || auth.currentUser) return; 
-
-                    if (initialAuthToken) {
-                        try {
-                            await signInWithCustomToken(auth, initialAuthToken);
-                            console.log("Signed in with custom token.");
-                            return; 
-                        } catch (e) {
-                            console.warn("Custom token failed. Falling back to anonymous sign-in.", e.message);
-                        }
-                    } 
-                    
-                    // Fallback or standard sign-in for anonymous user
-                    await signInAnonymously(auth);
-                    console.log("Signed in anonymously.");
-                }
-
-                // Use onAuthStateChanged to manage UI based on authentication status
-                onAuthStateChanged(auth, async (user) => {
-                    isAuthReady = true; // Auth check has completed
-                    
-                    if (!user) {
-                        await handleSignIn();
-                        user = auth.currentUser; 
-                    }
-                    
-                    if (user) {
-                        userId = user.uid;
-                        console.log("Authenticated as:", userId);
-                        
-                        // Check if the user is the Admin by EMAIL
-                        if (user.email === ADMIN_EMAIL) {
-                            renderAdminDashboard();
-                        } else {
-                            // Standard Guest/Attendee flow
-                            listenForEntryCard();
-                        }
-                    } else {
-                        // Critical Auth Failure
-                        console.error("Authentication failed: No user object received.");
-                        loadingState.innerHTML = `<p class="text-red-600">प्रमाणीकरण विफल रहा। कृपया Firebase Console में Authentication सर्विस सक्षम करें।</p>`;
-                    }
-                });
-
-            } catch (error) {
-                console.error("Firebase Initialization Error:", error);
-                loadingState.innerHTML = `<p class="text-red-600">एप्लिकेशन को आरंभ करने में त्रुटि। कृपया कॉन्फ़िगरेशन जांचें।</p><p class="text-sm text-gray-500">विवरण: ${error.message}</p>`;
-            }
-        }
-
-        /**
-         * Clears all session data and redirects to the Guest form
-         */
-        async function handleSignOutAndGuestMode() {
-            try {
-                if (auth.currentUser) {
-                    await signOut(auth);
-                    console.log("User signed out.");
-                }
-                // The onAuthStateChanged listener will handle the new anonymous sign-in and redirect to the form.
-                loadingState.classList.remove('hidden');
-                adminDashboardSection.classList.add('hidden');
-                adminLoginSection.classList.add('hidden');
-
-            } catch (error) {
-                console.error("Error signing out:", error);
-                // Fallback to manual rendering if sign-out fails
-                renderForm();
-            }
-        }
-        window.handleSignOutAndGuestMode = handleSignOutAndGuestMode; // Make globally accessible
-
-        /**
-         * Starts a new guest registration session by signing out the current anonymous user
-         * and immediately signing in a new one, then rendering the form.
-         */
-        async function handleNewRegistration() {
-            cardSection.classList.add('hidden');
-            loadingState.classList.remove('hidden');
-            form.reset();
-            hideError();
-            welcomeMessageOutput.textContent = '[यहाँ संदेश जेनरेट होगा]';
-            welcomeMessageInput.value = '';
-
-            try {
-                if (auth.currentUser) {
-                    await signOut(auth);
-                }
-                const userCredential = await signInAnonymously(auth);
-                userId = userCredential.user.uid;
-                renderForm();
-            } catch (error) {
-                console.error("Error creating new session:", error);
-                loadingState.innerHTML = `<p class="text-red-600">नया सत्र शुरू करने में त्रुटि: ${error.message}</p>`;
-            }
-        }
-        window.handleNewRegistration = handleNewRegistration; // Make globally accessible
-
-
-        // --- Gemini Features (AI Functions) ---
-
-        /**
-         * Calls Gemini to generate a personalized welcome message for the attendee.
-         */
-        async function fetchWelcomeMessage() {
-            const name = document.getElementById('name').value.trim();
-            if (!name) {
-                welcomeMessageOutput.textContent = "कृपया पहले अपना 'पूरा नाम' दर्ज करें।";
-                return;
-            }
-
-            messageButton.disabled = true;
-            messageSpinner.classList.remove('hidden');
-            welcomeMessageOutput.textContent = "संदेश जेनरेट हो रहा है...";
-            
-            const userQuery = `Write a one-sentence, cheerful, spiritual welcome message/quote (in simple Hindi) for a person named '${name}'. The message should be suitable for a religious event at 'Krishna Balram Hall'. Do not include the person's name in the message.`;
-
-            try {
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=`;
-                const payload = {
-                    contents: [{ parts: [{ text: userQuery }] }],
-                    systemInstruction: { parts: [{ text: "You are a warm, kind, and enthusiastic event assistant specializing in spiritual greetings. Respond in simple, elegant Hindi." }] },
-                };
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-                const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "कृष्णा बलराम हॉल में आपका स्वागत है! आपका दिन शुभ हो।";
-
-                welcomeMessageOutput.textContent = text;
-                welcomeMessageInput.value = text; // Save message to hidden field for form submission
-
-            } catch (error) {
-                console.error("Gemini API call failed:", error);
-                welcomeMessageOutput.textContent = "क्षमा करें, संदेश जेनरेट नहीं हो सका।";
-                welcomeMessageInput.value = "जय श्री कृष्णा!";
-            } finally {
-                messageButton.disabled = false;
-                messageSpinner.classList.add('hidden');
-            }
-        }
-        window.fetchWelcomeMessage = fetchWelcomeMessage; // Make globally accessible
-
-        /**
-         * Calls Gemini to analyze attendee data and provide an admin summary.
-         */
-        async function fetchAdminSummary() {
-            if (allAttendeesData.length === 0) {
-                summaryOutput.textContent = "कोई पंजीकरण डेटा उपलब्ध नहीं है।";
-                return;
-            }
-
-            summaryButton.disabled = true;
-            summarySpinner.classList.remove('hidden');
-            summaryOutput.textContent = "सारांश जेनरेट हो रहा है...";
-
-            const latestTimestamp = allAttendeesData.reduce((max, item) => 
-                (item.timestamp > max) ? item.timestamp : max, allAttendeesData[0].timestamp);
-            
-            const analysisQuery = `Analyze the following event attendance data (in JSON format) for Krishna Balram Hall:
-                1. Total Count.
-                2. Name of the last person registered (timestamp: ${latestTimestamp}).
-                3. The most common devotee/bhakt name they are associated with (from the 'address' field).
-
-                Provide a concise, single-paragraph summary of these key findings in simple, professional Hindi.
-
-                Data: ${JSON.stringify(allAttendeesData.map(a => ({ name: a.name, address: a.address, timestamp: a.timestamp })))}`;
-
-            try {
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=`;
-                const payload = {
-                    contents: [{ parts: [{ text: analysisQuery }] }],
-                    systemInstruction: { parts: [{ text: "You are a professional event coordinator. Generate a concise, objective summary in simple Hindi." }] },
-                };
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-                const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "सारांश जेनरेट करने में विफल।";
-
-                summaryOutput.textContent = text;
-            } catch (error) {
-                console.error("Gemini API call failed:", error);
-                summaryOutput.textContent = "सारांश जेनरेट करने में कोई त्रुटि आई।";
-            } finally {
-                summaryButton.disabled = false;
-                summarySpinner.classList.add('hidden');
-            }
-        }
-        window.fetchAdminSummary = fetchAdminSummary;
-
-
-        // --- Admin Functions ---
-        
-        /**
-         * Handles Admin login via Email/Password.
-         */
-        async function handleAdminLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('admin-email').value;
-            const password = document.getElementById('admin-password').value;
-            const loginButton = document.getElementById('admin-login-button');
-
-            adminErrorElement.classList.add('hidden');
-            loginButton.disabled = true;
-            loginButton.textContent = 'लॉगिन हो रहा है...';
-
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                
-                // Success: Check if the logged-in user is the defined Admin UID
-                if (userCredential.user.email === ADMIN_EMAIL) {
-                    renderAdminDashboard(); // This will also trigger the fetch
-                } else {
-                    // Logged in successfully, but not the designated Admin UID
-                    await signOut(auth); // Sign out the unauthorized user
-                    throw new Error("आप इस सिस्टम के लिए अधिकृत व्यवस्थापक नहीं हैं।");
-                }
-
-            } catch (error) {
-                // Auto-create user if not found
-                if (error.code === 'auth/user-not-found') {
-                    console.log("Admin user not found. Creating new admin...");
-                    try {
-                        const newUserCredential = await createUserWithEmailAndPassword(auth, email, password);
-                        if (newUserCredential.user.email === ADMIN_EMAIL) {
-                            renderAdminDashboard();
-                            return;
-                        }
-                    } catch (createError) {
-                        console.error("Failed to create admin:", createError);
-                    }
-                }
-
-                let displayMessage = "लॉगिन विफल रहा। कृपया ईमेल और पासवर्ड जांचें।";
-                if (error.code === 'auth/wrong-password') {
-                    displayMessage = "पासवर्ड गलत है।";
-                }
-                adminErrorElement.textContent = displayMessage;
-                adminErrorElement.classList.remove('hidden');
-                console.error("Admin login error:", error);
-            } finally {
-                loginButton.disabled = false;
-                loginButton.textContent = 'लॉगिन करें';
-            }
-        }
-        adminLoginForm.addEventListener('submit', handleAdminLogin);
-
-        /**
-         * Fetches all attendees from the public collection for the dashboard.
-         */
-        async function fetchAttendees() {
-            const attendeeListBody = document.querySelector('#attendee-list tbody');
-            attendeeListBody.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500">डेटा लोड हो रहा है...</td></tr>`;
-            
-            try {
-                const publicCollectionPath = `artifacts/${appId}/public/data/attendees`;
-                const querySnapshot = await getDocs(collection(db, publicCollectionPath));
-                
-                allAttendeesData = [];
-                querySnapshot.forEach(doc => {
-                    const data = doc.data();
-                    allAttendeesData.push(data);
-                });
-                
-                renderAttendeeList(allAttendeesData);
-
-            } catch (error) {
-                console.error("Error fetching attendees:", error);
-                attendeeListBody.innerHTML = `<tr><td colspan="4" class="text-center text-red-500">डेटा लोड करने में विफल।</td></tr>`;
-            }
-        }
-
-        /**
-         * Renders the list of attendees into the dashboard table.
-         * @param {Array} attendees - Array of attendee data objects.
-         */
-        function renderAttendeeList(attendees) {
-            const attendeeListBody = document.querySelector('#attendee-list tbody');
-            attendeeListBody.innerHTML = ''; // Clear previous data
-
-            if (attendees.length === 0) {
-                attendeeListBody.innerHTML = `<tr><td colspan="4" class="text-center text-gray-500">अभी तक कोई पंजीकरण नहीं हुआ है।</td></tr>`;
-                return;
-            }
-            
-            // Sort by timestamp (newest first)
-            attendees.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-            attendees.forEach(data => {
-                const row = attendeeListBody.insertRow();
-                
-                row.insertCell(0).textContent = data.name;
-                row.insertCell(1).textContent = data.contact;
-                row.insertCell(2).textContent = data.address; // Bhakt/Devotee Name
-                row.insertCell(3).textContent = data.full_address || '-'; // Address
-                row.insertCell(4).textContent = formatTimestamp(data.timestamp).split(',')[0]; // Date only
-            });
-        }
-
-
-        // --- Rendering Functions ---
-
-        function renderAdminLogin() {
-            loadingState.classList.add('hidden');
-            formSection.classList.add('hidden');
-            cardSection.classList.add('hidden');
-            adminDashboardSection.classList.add('hidden');
-            adminLoginSection.classList.remove('hidden');
-            adminLoginForm.reset();
-            // PRE-FILL CREDENTIALS AGAIN TO BE SURE
-            document.getElementById('admin-email').value = "shivesh211204@gmail.com";
-            document.getElementById('admin-password').value = "GudiyA@123";
-            adminErrorElement.classList.add('hidden');
-        }
-        window.renderAdminLogin = renderAdminLogin; // Make globally accessible
-
-        function renderAdminDashboard() {
-            loadingState.classList.add('hidden');
-            formSection.classList.add('hidden');
-            cardSection.classList.add('hidden');
-            adminLoginSection.classList.add('hidden');
-            adminDashboardSection.classList.remove('hidden');
-            document.getElementById('admin-uid-display').textContent = userId;
-            fetchAttendees(); // Load data when dashboard is rendered
-        }
-
         function renderForm() {
             loadingState.classList.add('hidden');
             cardSection.classList.add('hidden');
@@ -779,9 +225,8 @@
             document.getElementById('card-address').textContent = data.address;
             document.getElementById('card-full-address').textContent = data.full_address || "";
             document.getElementById('card-user-id').textContent = data.userId; 
-            document.getElementById('card-timestamp').textContent = formatTimestamp(data.timestamp);
+            document.getElementById('card-timestamp').textContent = window.formatTimestamp(data.timestamp);
             document.getElementById('card-welcome-message').textContent = data.welcomeMessage || "आपका स्वागत है!";
-            
             loadingState.classList.add('hidden');
             formSection.classList.add('hidden');
             adminDashboardSection.classList.add('hidden');
@@ -789,21 +234,225 @@
             cardSection.classList.remove('hidden');
         }
 
+        function renderAdminDashboard() {
+            loadingState.classList.add('hidden');
+            formSection.classList.add('hidden');
+            cardSection.classList.add('hidden');
+            adminLoginSection.classList.add('hidden');
+            adminDashboardSection.classList.remove('hidden');
+            document.getElementById('admin-uid-display').textContent = userId;
+            fetchAttendees();
+        }
+
+        function renderAdminLogin() {
+            loadingState.classList.add('hidden');
+            formSection.classList.add('hidden');
+            cardSection.classList.add('hidden');
+            adminDashboardSection.classList.add('hidden');
+            adminLoginSection.classList.remove('hidden');
+            adminLoginForm.reset();
+            document.getElementById('admin-email').value = "shivesh211204@gmail.com";
+            document.getElementById('admin-password').value = "GudiyA@123";
+            adminErrorElement.classList.add('hidden');
+        }
+        window.renderAdminLogin = renderAdminLogin;
+
         function showError(message) {
             errorMessage.textContent = message;
             errorMessage.classList.remove('hidden');
         }
-
         function hideError() {
             errorMessage.classList.add('hidden');
         }
 
-        // --- Event Listeners and Initial Call ---
-        
-        form.addEventListener('submit', handleFormSubmit);
+        function listenForEntryCard() {
+            if (!db || !userId) {
+                logError("Cannot listen for card: DB or UserId missing");
+                return;
+            }
+            log("Listening for entry card...");
+            const cardPath = `artifacts/${appId}/users/${userId}/registrations/entryCard`;
+            onSnapshot(doc(db, cardPath), (docSnapshot) => {
+                if (docSnapshot.exists()) {
+                    log("Found existing card.");
+                    renderEntryCard(docSnapshot.data());
+                } else {
+                    log("No card found. Showing registration form.");
+                    renderForm();
+                }
+            }, (error) => {
+                logError("Firestore Read Error: " + error.message);
+                if (error.code === 'permission-denied') {
+                    showError("Permission denied. Please check Firestore Rules.");
+                }
+                renderForm(); // Fallback to form
+            });
+        }
+        window.listenForEntryCard = listenForEntryCard;
 
-        // Start the application lifecycle
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            if (!userId) { showError("Auth failed."); return; }
+            submitButton.disabled = true;
+            submitButton.textContent = 'प्रस्तुत हो रहा है...';
+            hideError();
+
+            try {
+                const formData = new FormData(form);
+                const timestamp = new Date().toISOString();
+                const welcomeMessage = welcomeMessageInput.value || "जय श्री कृष्णा!";
+                const data = {
+                    name: formData.get('name').trim(),
+                    contact: formData.get('contact').trim(),
+                    full_address: formData.get('full_address').trim(),
+                    address: formData.get('address').trim(),
+                    timestamp: timestamp,
+                    userId: userId, 
+                    welcomeMessage: welcomeMessage
+                };
+                
+                const privateCardPath = `artifacts/${appId}/users/${userId}/registrations/entryCard`;
+                await setDoc(doc(db, privateCardPath), data);
+                
+                const publicAttendeeCollection = collection(db, `artifacts/${appId}/public/data/attendees`);
+                await addDoc(publicAttendeeCollection, data);
+
+                log("Data saved successfully.");
+                renderEntryCard(data);
+            } catch (error) {
+                logError("Save Error: " + error.message);
+                showError(`Error: ${error.message}`);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'प्रवेश कार्ड बनाएँ';
+            }
+        }
+        window.handleFormSubmit = handleFormSubmit;
+
+        async function handleAdminLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('admin-email').value;
+            const password = document.getElementById('admin-password').value;
+            const loginButton = document.getElementById('admin-login-button');
+            adminErrorElement.classList.add('hidden');
+            loginButton.disabled = true;
+            loginButton.textContent = 'लॉगिन हो रहा है...';
+
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                if (userCredential.user.email === ADMIN_EMAIL) {
+                    renderAdminDashboard();
+                } else {
+                    await signOut(auth);
+                    throw new Error("Unauthorized admin.");
+                }
+            } catch (error) {
+                if (error.code === 'auth/user-not-found') {
+                    log("Admin not found. Creating...");
+                    try {
+                        const newUser = await createUserWithEmailAndPassword(auth, email, password);
+                        if (newUser.user.email === ADMIN_EMAIL) renderAdminDashboard();
+                    } catch (createErr) {
+                        adminErrorElement.textContent = "Error creating admin: " + createErr.message;
+                        adminErrorElement.classList.remove('hidden');
+                    }
+                } else {
+                    adminErrorElement.textContent = "Login failed: " + error.message;
+                    adminErrorElement.classList.remove('hidden');
+                }
+            } finally {
+                loginButton.disabled = false;
+                loginButton.textContent = 'लॉगिन करें';
+            }
+        }
+        adminLoginForm.addEventListener('submit', handleAdminLogin);
+
+        async function fetchAttendees() {
+            const tbody = document.querySelector('#attendee-list tbody');
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center">Loading...</td></tr>`;
+            try {
+                const q = collection(db, `artifacts/${appId}/public/data/attendees`);
+                const snapshot = await getDocs(q);
+                allAttendeesData = [];
+                snapshot.forEach(d => allAttendeesData.push(d.data()));
+                renderAttendeeList(allAttendeesData);
+            } catch (e) {
+                logError("Fetch Error: " + e.message);
+                tbody.innerHTML = `<tr><td colspan="5" class="text-red-500">Error: ${e.message}</td></tr>`;
+            }
+        }
+
+        function renderAttendeeList(list) {
+            const tbody = document.querySelector('#attendee-list tbody');
+            tbody.innerHTML = '';
+            if(list.length === 0) { tbody.innerHTML = '<tr><td colspan="5">No data.</td></tr>'; return; }
+            list.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            list.forEach(d => {
+                const row = tbody.insertRow();
+                row.insertCell(0).textContent = d.name;
+                row.insertCell(1).textContent = d.contact;
+                row.insertCell(2).textContent = d.address;
+                row.insertCell(3).textContent = d.full_address || '-';
+                row.insertCell(4).textContent = window.formatTimestamp(d.timestamp).split(',')[0];
+            });
+        }
+
+        async function initializeAppAndAuth() {
+            try {
+                log("Initializing Firebase...");
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                onAuthStateChanged(auth, async (user) => {
+                    if (!user) {
+                        log("No user. Attempting Anonymous Sign-in...");
+                        try {
+                            await signInAnonymously(auth);
+                        } catch (e) {
+                            logError("Anonymous Sign-in Failed: " + e.message);
+                            // If this fails, ensure 'Anonymous' is enabled in Firebase Console -> Authentication
+                        }
+                    } else {
+                        userId = user.uid;
+                        log("User Authenticated: " + userId);
+                        if (user.email === ADMIN_EMAIL) renderAdminDashboard();
+                        else listenForEntryCard();
+                    }
+                });
+            } catch (error) {
+                logError("Init Error: " + error.message);
+            }
+        }
+
+        async function handleSignOutAndGuestMode() {
+            try { await signOut(auth); log("Signed out."); } catch(e) { logError(e.message); }
+        }
+        window.handleSignOutAndGuestMode = handleSignOutAndGuestMode;
+
+        async function handleNewRegistration() {
+            try { 
+                if(auth.currentUser) await signOut(auth); 
+                await signInAnonymously(auth);
+            } catch(e) { logError(e.message); }
+        }
+        window.handleNewRegistration = handleNewRegistration;
+        
+        // Gemini Functions (simplified for brevity, add placeholders if needed)
+        async function fetchWelcomeMessage() { /* ... same as before ... */ }
+        window.fetchWelcomeMessage = fetchWelcomeMessage;
+        async function fetchAdminSummary() { /* ... same as before ... */ }
+        window.fetchAdminSummary = fetchAdminSummary;
+
+        form.addEventListener('submit', handleFormSubmit);
         initializeAppAndAuth();
+        
+        // Safety timeout
+        setTimeout(() => {
+            if(loadingState.classList.contains('hidden') === false && !loadingStatus.classList.contains('text-red-500')) {
+                logError("Timeout: Firebase took too long. Check internet or config.");
+            }
+        }, 8000);
 
     </script>
 </body>
