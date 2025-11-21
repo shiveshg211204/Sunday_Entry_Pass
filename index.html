@@ -158,7 +158,6 @@
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        // ADDED 'writeBatch' to imports
         import { getFirestore, doc, setDoc, onSnapshot, collection, addDoc, getDocs, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         const PROJECT_FIREBASE_CONFIG = {
@@ -173,7 +172,12 @@
 
         const appId = PROJECT_FIREBASE_CONFIG.projectId;
         const firebaseConfig = PROJECT_FIREBASE_CONFIG; 
-        const ADMIN_EMAIL = "shivesh211204@gmail.com"; 
+        
+        // MODIFIED: List of allowed admins
+        const ADMIN_EMAILS = [
+            "shivesh211204@gmail.com",
+            "iskcon.sunday.feast@gmail.com"
+        ];
 
         let app, db, auth, userId = null;
         let allAttendeesData = [];
@@ -315,7 +319,7 @@
             document.body.removeChild(link);
         };
 
-        // 3. CLEAR DATA FUNCTIONALITY (NEW)
+        // 3. CLEAR DATA FUNCTIONALITY
         window.clearAllData = async function() {
             if (!confirm("WARNING: This will delete ALL attendee data from the dashboard permanently. This action cannot be undone. Are you sure?")) return;
             
@@ -333,7 +337,6 @@
                     return;
                 }
 
-                // Create a batch for deletion
                 const batch = writeBatch(db);
                 snapshot.docs.forEach((doc) => {
                     batch.delete(doc.ref);
@@ -454,7 +457,9 @@
             try {
                 if (unsubscribeEntryCard) unsubscribeEntryCard();
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                if (userCredential.user.email === ADMIN_EMAIL) {
+                
+                // MODIFIED: Check if email is in allowed list
+                if (ADMIN_EMAILS.includes(userCredential.user.email)) {
                     renderAdminDashboard();
                 } else {
                     await signOut(auth);
@@ -464,8 +469,13 @@
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
                     try {
                         if(error.code === 'auth/user-not-found') {
-                             const newUser = await createUserWithEmailAndPassword(auth, email, password);
-                             if (newUser.user.email === ADMIN_EMAIL) renderAdminDashboard();
+                             // Only allow creation if the email matches one of our allowed admins
+                             if (ADMIN_EMAILS.includes(email)) {
+                                 const newUser = await createUserWithEmailAndPassword(auth, email, password);
+                                 if (ADMIN_EMAILS.includes(newUser.user.email)) renderAdminDashboard();
+                             } else {
+                                 throw new Error("Unauthorized email for creation.");
+                             }
                         } else {
                              throw error;
                         }
@@ -526,7 +536,8 @@
                         }
                     } else {
                         userId = user.uid;
-                        if (user.email === ADMIN_EMAIL) renderAdminDashboard();
+                        // MODIFIED: Check if allowed admin
+                        if (ADMIN_EMAILS.includes(user.email)) renderAdminDashboard();
                         else listenForEntryCard();
                     }
                 });
